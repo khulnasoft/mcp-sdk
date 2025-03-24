@@ -1,0 +1,20 @@
+[workspace]
+members = [
+    "crates/*",
+    "examples/agents",
+    "examples/gateway",
+    "examples/codegen"
+]
+resolver = "2"
+
+[workspace.dependencies]
+mcp-kit = { path = "./crates/mcp-kit" }
+mcp-codegen = { path = "./crates/mcp-codegen" }
+
+[workspace.package]
+edition = "2021"
+version = "1.0.7"
+authors = ["Block <support@khulnasoft.com"]
+license = "MIT"
+repository = "https://github.com/khulnasoft/rust-sdk/"
+description = "Rust SDK for the Model Context Protocol"

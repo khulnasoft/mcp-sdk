@@ -1,0 +1,15 @@
+[[example]]
+name = "agents"
+path = "src/agents.rs"
+
+[[example]]
+name = "sse"
+path = "src/sse.rs"
+
+[[example]]
+name = "stdio"
+path = "src/stdio.rs"
+
+[[example]]
+name = "stdio_integration"
+path = "src/stdio_integration.rs"
