@@ -1,6 +1,6 @@
 //! build: cargo build -p mcp-gateway-examples --example wasi_std_io --target wasm32-wasip1
 //!
-//! run: npx @modelcontextprotocol/inspector wasmedge --dir logs:. run target/wasm32-wasip1/debug/examples/wasi_std_io.wasm
+//! run: npx @ai-toolkit/inspector wasmedge --dir logs:. run target/wasm32-wasip1/debug/examples/wasi_std_io.wasm
 //!
 use mcp_gateway::{router::RouterService, ByteTransport, Server};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
