@@ -42,9 +42,20 @@ async fn main() -> Result<()> {
         .await?;
     println!("Connected to server: {server_info:?}\n");
 
-    // Sleep for 100ms to allow the server to start - surprisingly this is required!
-    tokio::time::sleep(Duration::from_millis(500)).await;
-
+    // Implement retry logic with timeout to ensure server is ready
+    let max_retries = 5;
+    let retry_delay = Duration::from_millis(100);
+    
+    for attempt in 1..=max_retries {
+        match client.list_tools(None).await {
+            Ok(_) => break,
+            Err(e) if attempt < max_retries => {
+                println!("Server not ready, retrying ({}/{}): {}", attempt, max_retries, e);
+                tokio::time::sleep(retry_delay).await;
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
     // List tools
     let tools = client.list_tools(None).await?;
     println!("Available tools: {tools:?}\n");

@@ -15,8 +15,7 @@ Or manually add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mcp-sdk = "latest"
-```
+mcp-sdk = "0.1.0"
 
 ## ⚡ Features
 

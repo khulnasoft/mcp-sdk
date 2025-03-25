@@ -18,8 +18,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         "operation": "multiply"
     });
 
-    let result = calculator.call(input).await?;
-    println!("Result: {}", result);
+    match calculator.call(input).await {
+        Ok(result) => println!("Result: {}", result),
+        Err(e) => println!("Error calling calculator: {}", e),
+    }
 
     Ok(())
 }

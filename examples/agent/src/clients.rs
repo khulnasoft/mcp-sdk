@@ -30,7 +30,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let service2 = McpService::with_timeout(handle2, Duration::from_secs(30));
     let client2 = McpClient::new(service2);
 
-    let transport3 = SseTransport::new("http://localhost:8000/sse", HashMap::new());
+    // Get SSE URL from environment or use default
+    let sse_url = std::env::var("MCP_SSE_URL")
+        .unwrap_or_else(|_| "http://localhost:8000/sse".to_string());
+    let transport3 = SseTransport::new(&sse_url, HashMap::new());
     let handle3 = transport3.start().await?;
     let service3 = McpService::with_timeout(handle3, Duration::from_secs(10));
     let client3 = McpClient::new(service3);
