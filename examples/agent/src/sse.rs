@@ -50,7 +50,10 @@ async fn main() -> Result<()> {
         match client.list_tools(None).await {
             Ok(_) => break,
             Err(e) if attempt < max_retries => {
-                println!("Server not ready, retrying ({}/{}): {}", attempt, max_retries, e);
+                println!(
+                    "Server not ready, retrying ({}/{}): {}", 
+                    attempt, max_retries, e
+                );
                 tokio::time::sleep(retry_delay).await;
             }
             Err(e) => return Err(e.into()),
