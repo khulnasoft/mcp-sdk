@@ -13,8 +13,8 @@ mcp-codegen = { path = "./crates/mcp-codegen" }
 
 [workspace.package]
 edition = "2021"
-version = "1.0.7"
-authors = ["Block <ai-oss-tools@block.xyz>"]
+version = "1.0.0"
+authors = ["Md Sulaiman <dev.suliman@iclud.com>"]
 license = "MIT"
 repository = "https://github.com/khulnasoft/rust-sdk/"
 description = "Rust SDK for the Model Context Protocol"
