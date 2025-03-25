@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "KhulnaSoft, Ltd." }]
 maintainers = [{ name = "Jack Adamson", email = "jadamson@khulnasoft.com" }]
-keywords = ["http", "mcp", "llm", "automation"]
+keywords = ["http", "mcp-sdk", "llm", "automation"]
 license = { text = "MIT" }
 classifiers = [
     "Development Status :: 4 - Beta",

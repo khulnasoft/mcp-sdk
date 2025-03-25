@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 authors = [
     { name = "Mariusz 'maledorak' Korzekwa", email = "mariusz@korzekwa.dev" },
 ]
-keywords = ["time", "timezone", "mcp", "llm"]
+keywords = ["time", "timezone", "mcp-sdk", "llm"]
 license = { text = "MIT" }
 classifiers = [
     "Development Status :: 4 - Beta",

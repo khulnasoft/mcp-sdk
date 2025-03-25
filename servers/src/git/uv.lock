@@ -154,7 +154,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp"
+name = "mcp-sdk"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
@@ -177,7 +177,7 @@ source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "gitpython" },
-    { name = "mcp" },
+    { name = "mcp-sdk" },
     { name = "pydantic" },
 ]
 
@@ -192,7 +192,7 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
     { name = "gitpython", specifier = ">=3.1.43" },
-    { name = "mcp", specifier = ">=1.0.0" },
+    { name = "mcp-sdk", specifier = ">=1.0.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
 ]
 

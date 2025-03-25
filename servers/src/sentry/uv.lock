@@ -129,7 +129,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp"
+name = "mcp-sdk"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
@@ -150,7 +150,7 @@ name = "mcp-server-sentry"
 version = "0.6.2"
 source = { editable = "." }
 dependencies = [
-    { name = "mcp" },
+    { name = "mcp-sdk" },
 ]
 
 [package.dev-dependencies]
@@ -161,7 +161,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "mcp", specifier = ">=1.0.0" }]
+requires-dist = [{ name = "mcp-sdk", specifier = ">=1.0.0" }]
 
 [package.metadata.requires-dev]
 dev = [

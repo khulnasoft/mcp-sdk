@@ -9,7 +9,9 @@
   "bugs": "https://github.com/khulnasoft/mcp/tree/main/servers/issues",
   "type": "module",
   "workspaces": [
-    "src/*"
+    "src/*",
+    "../../examples/*",
+    "../../packages/*"
   ],
   "files": [],
   "scripts": {
