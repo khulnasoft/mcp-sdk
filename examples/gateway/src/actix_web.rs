@@ -1,7 +1,7 @@
 use actix_web::web::{Bytes, Data, Payload, Query};
-use actix_web::{get, post, App, Error, HttpGateway, HttpResponse, Result};
+use actix_web::{get, post, App, Error, HttpResponse, HttpServer, Result};
 use futures::{StreamExt, TryStreamExt};
-use mcp_gateway::{ByteTransport, Gateway};
+use mcp_gateway::{ByteTransport, Server};
 use std::collections::HashMap;
 use tokio_util::codec::FramedRead;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -74,12 +74,12 @@ async fn post_event_handler(
         }
 
         if (write_stream.write_all(&chunk).await).is_err() {
-            return Ok(HttpResponse::InternalGatewayError().finish());
+            return Ok(HttpResponse::InternalServerError().finish());
         }
     }
 
     if (write_stream.write_u8(b'\n').await).is_err() {
-        return Ok(HttpResponse::InternalGatewayError().finish());
+        return Ok(HttpResponse::InternalServerError().finish());
     }
 
     Ok(HttpResponse::Accepted().finish())
@@ -106,12 +106,12 @@ async fn sse_handler(app_state: Data<AppState>) -> Result<HttpResponse, Error> {
         let app_state = app_state.clone();
         tokio::spawn(async move {
             let router = RouterService(counter::CounterRouter::new());
-            let gateway = Gateway::new(router);
+            let server = Server::new(router);
             let bytes_transport = ByteTransport::new(c2s_read, s2c_write);
-            let _result = gateway
+            let _result = server
                 .run(bytes_transport)
                 .await
-                .inspect_err(|e| tracing::error!(?e, "gateway run error"));
+                .inspect_err(|e| tracing::error!(?e, "server run error"));
             tracing::info!(%session, "connection closed, removing session");
             app_state.txs.write().await.remove(&session);
         });
@@ -151,11 +151,11 @@ async fn main() -> io::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    tracing::debug!("starting gateway at {}", BIND_ADDRESS);
+    tracing::debug!("starting server at {}", BIND_ADDRESS);
 
     let app_state = Data::new(AppState::new());
 
-    HttpGateway::new(move || {
+    HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             .app_data(app_state.clone())

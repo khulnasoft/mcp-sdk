@@ -4,13 +4,13 @@ use std::{
 };
 
 use futures::{Future, Stream};
-use mcp_core::protocol::{JsonRpcError, JsonRpcMessage, JsonRpcRequest, JsonRpcResponse};
+use mcp_kit::protocol::{JsonRpcError, JsonRpcMessage, JsonRpcRequest, JsonRpcResponse};
 use pin_project::pin_project;
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader};
 use tower_service::Service;
 
 mod errors;
-pub use errors::{BoxError, GatewayError, RouterError, TransportError};
+pub use errors::{BoxError, RouterError, ServerError, TransportError};
 
 pub mod router;
 pub use router::Router;
@@ -120,12 +120,12 @@ where
     }
 }
 
-/// The main gateway type that processes incoming requests
-pub struct Gateway<S> {
+/// The main server type that processes incoming requests
+pub struct Server<S> {
     service: S,
 }
 
-impl<S> Gateway<S>
+impl<S> Server<S>
 where
     S: Service<JsonRpcRequest, Response = JsonRpcResponse> + Send,
     S::Error: Into<BoxError>,
@@ -136,7 +136,7 @@ where
     }
 
     // TODO transport trait instead of byte transport if we implement others
-    pub async fn run<R, W>(self, mut transport: ByteTransport<R, W>) -> Result<(), GatewayError>
+    pub async fn run<R, W>(self, mut transport: ByteTransport<R, W>) -> Result<(), ServerError>
     where
         R: AsyncRead + Unpin,
         W: AsyncWrite + Unpin,
@@ -145,7 +145,7 @@ where
         let mut service = self.service;
         let mut transport = Pin::new(&mut transport);
 
-        tracing::info!("Gateway started");
+        tracing::info!("Server started");
         while let Some(msg_result) = transport.next().await {
             let _span = tracing::span!(tracing::Level::INFO, "message_processing");
             let _enter = _span.enter();
@@ -175,8 +175,8 @@ where
                                         jsonrpc: "2.0".to_string(),
                                         id,
                                         result: None,
-                                        error: Some(mcp_core::protocol::ErrorData {
-                                            code: mcp_core::protocol::INTERNAL_ERROR,
+                                        error: Some(mcp_kit::protocol::ErrorData {
+                                            code: mcp_kit::protocol::INTERNAL_ERROR,
                                             message: error_msg,
                                             data: None,
                                         }),
@@ -198,7 +198,7 @@ where
                                 .write_message(JsonRpcMessage::Response(response))
                                 .await
                             {
-                                return Err(GatewayError::Transport(TransportError::Io(e)));
+                                return Err(ServerError::Transport(TransportError::Io(e)));
                             }
                         }
                         JsonRpcMessage::Response(_)
@@ -214,19 +214,19 @@ where
                     // Convert transport error to JSON-RPC error response
                     let error = match e {
                         TransportError::Json(_) | TransportError::InvalidMessage(_) => {
-                            mcp_core::protocol::ErrorData {
-                                code: mcp_core::protocol::PARSE_ERROR,
+                            mcp_kit::protocol::ErrorData {
+                                code: mcp_kit::protocol::PARSE_ERROR,
                                 message: e.to_string(),
                                 data: None,
                             }
                         }
-                        TransportError::Protocol(_) => mcp_core::protocol::ErrorData {
-                            code: mcp_core::protocol::INVALID_REQUEST,
+                        TransportError::Protocol(_) => mcp_kit::protocol::ErrorData {
+                            code: mcp_kit::protocol::INVALID_REQUEST,
                             message: e.to_string(),
                             data: None,
                         },
-                        _ => mcp_core::protocol::ErrorData {
-                            code: mcp_core::protocol::INTERNAL_ERROR,
+                        _ => mcp_kit::protocol::ErrorData {
+                            code: mcp_kit::protocol::INTERNAL_ERROR,
                             message: e.to_string(),
                             data: None,
                         },
@@ -239,7 +239,7 @@ where
                     });
 
                     if let Err(e) = transport.write_message(error_response).await {
-                        return Err(GatewayError::Transport(TransportError::Io(e)));
+                        return Err(ServerError::Transport(TransportError::Io(e)));
                     }
                 }
             }

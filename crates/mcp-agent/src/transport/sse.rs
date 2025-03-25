@@ -1,9 +1,9 @@
 use crate::transport::{Error, PendingRequests, TransportMessage};
 use async_trait::async_trait;
-use eventsource_agent::{Agent, SSE};
+use eventsource_client::{Client, SSE};
 use futures::TryStreamExt;
-use mcp_core::protocol::{JsonRpcMessage, JsonRpcRequest};
-use reqwest::Agent as HttpAgent;
+use mcp_kit::protocol::{JsonRpcMessage, JsonRpcRequest};
+use reqwest::Client as HttpClient;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -27,7 +27,7 @@ pub struct SseActor {
     /// Base SSE URL
     sse_url: String,
     /// For sending HTTP POST requests
-    http_agent: HttpAgent,
+    http_client: HttpClient,
     /// The discovered endpoint for POST requests (once "endpoint" SSE event arrives)
     post_endpoint: Arc<RwLock<Option<String>>>,
 }
@@ -44,7 +44,7 @@ impl SseActor {
             pending_requests,
             sse_url,
             post_endpoint,
-            http_agent: HttpAgent::new(),
+            http_client: HttpClient::new(),
         }
     }
 
@@ -60,7 +60,7 @@ impl SseActor {
             ),
             Self::handle_outgoing_messages(
                 self.receiver,
-                self.http_agent.clone(),
+                self.http_client.clone(),
                 Arc::clone(&self.post_endpoint),
                 Arc::clone(&self.pending_requests),
             )
@@ -76,21 +76,21 @@ impl SseActor {
         pending_requests: Arc<PendingRequests>,
         post_endpoint: Arc<RwLock<Option<String>>>,
     ) {
-        let agent = match eventsource_agent::AgentBuilder::for_url(&sse_url) {
+        let client = match eventsource_client::ClientBuilder::for_url(&sse_url) {
             Ok(builder) => builder.build(),
             Err(e) => {
                 pending_requests.clear().await;
-                warn!("Failed to connect SSE agent: {}", e);
+                warn!("Failed to connect SSE client: {}", e);
                 return;
             }
         };
-        let mut stream = agent.stream();
+        let mut stream = client.stream();
 
         // First, wait for the "endpoint" event
         while let Ok(Some(event)) = stream.try_next().await {
             match event {
                 SSE::Event(e) if e.event_type == "endpoint" => {
-                    // SSE gateway uses the "endpoint" event to tell us the POST URL
+                    // SSE server uses the "endpoint" event to tell us the POST URL
                     let base_url = Url::parse(&sse_url).expect("Invalid base URL");
                     let post_url = base_url
                         .join(&e.data)
@@ -148,7 +148,7 @@ impl SseActor {
     /// - POST the message to the discovered endpoint (once known).
     async fn handle_outgoing_messages(
         mut receiver: mpsc::Receiver<TransportMessage>,
-        http_agent: HttpAgent,
+        http_client: HttpClient,
         post_endpoint: Arc<RwLock<Option<String>>>,
         pending_requests: Arc<PendingRequests>,
     ) {
@@ -184,7 +184,7 @@ impl SseActor {
             }
 
             // Perform the HTTP POST
-            match http_agent
+            match http_client
                 .post(&post_url)
                 .header("Content-Type", "application/json")
                 .body(message_str)

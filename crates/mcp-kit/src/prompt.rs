@@ -66,7 +66,7 @@ pub enum PromptMessageContent {
     Text { text: String },
     /// Image content with base64-encoded data
     Image { image: ImageContent },
-    /// Embedded gateway-side resource
+    /// Embedded server-side resource
     Resource { resource: EmbeddedResource },
 }
 

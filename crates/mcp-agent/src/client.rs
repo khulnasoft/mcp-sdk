@@ -1,7 +1,7 @@
-use mcp_core::protocol::{
-    CallToolResult, GatewayCapabilities, GetPromptResult, Implementation, InitializeResult,
-    JsonRpcError, JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse,
-    ListPromptsResult, ListResourcesResult, ListToolsResult, ReadResourceResult, METHOD_NOT_FOUND,
+use mcp_kit::protocol::{
+    CallToolResult, GetPromptResult, Implementation, InitializeResult, JsonRpcError,
+    JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, ListPromptsResult,
+    ListResourcesResult, ListToolsResult, ReadResourceResult, ServerCapabilities, METHOD_NOT_FOUND,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -12,7 +12,7 @@ use tower::{Service, ServiceExt}; // for Service::ready()
 
 pub type BoxError = Box<dyn std::error::Error + Sync + Send>;
 
-/// Error type for MCP agent operations.
+/// Error type for MCP client operations.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Transport error: {0}")]
@@ -24,7 +24,7 @@ pub enum Error {
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
-    #[error("Unexpected response from gateway: {0}")]
+    #[error("Unexpected response from server: {0}")]
     UnexpectedResponse(String),
 
     #[error("Not initialized")]
@@ -37,12 +37,12 @@ pub enum Error {
     Timeout(#[from] tower::timeout::error::Elapsed),
 
     #[error("Error from mcp-gateway: {0}")]
-    GatewayBoxError(BoxError),
+    ServerBoxError(BoxError),
 
-    #[error("Call to '{gateway}' failed for '{method}'. {source}")]
-    McpGatewayError {
+    #[error("Call to '{server}' failed for '{method}'. {source}")]
+    McpServerError {
         method: String,
-        gateway: String,
+        server: String,
         #[source]
         source: BoxError,
     },
@@ -51,18 +51,18 @@ pub enum Error {
 // BoxError from mcp-gateway gets converted to our Error type
 impl From<BoxError> for Error {
     fn from(err: BoxError) -> Self {
-        Error::GatewayBoxError(err)
+        Error::ServerBoxError(err)
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct AgentInfo {
+pub struct ClientInfo {
     pub name: String,
     pub version: String,
 }
 
 #[derive(Serialize, Deserialize, Default)]
-pub struct AgentCapabilities {
+pub struct ClientCapabilities {
     // Add fields as needed. For now, empty capabilities are fine.
 }
 
@@ -70,17 +70,17 @@ pub struct AgentCapabilities {
 pub struct InitializeParams {
     #[serde(rename = "protocolVersion")]
     pub protocol_version: String,
-    pub capabilities: AgentCapabilities,
-    #[serde(rename = "agentInfo")]
-    pub agent_info: AgentInfo,
+    pub capabilities: ClientCapabilities,
+    #[serde(rename = "clientInfo")]
+    pub client_info: ClientInfo,
 }
 
 #[async_trait::async_trait]
-pub trait McpAgentTrait: Send + Sync {
+pub trait McpClientTrait: Send + Sync {
     async fn initialize(
         &mut self,
-        info: AgentInfo,
-        capabilities: AgentCapabilities,
+        info: ClientInfo,
+        capabilities: ClientCapabilities,
     ) -> Result<InitializeResult, Error>;
 
     async fn list_resources(
@@ -99,8 +99,8 @@ pub trait McpAgentTrait: Send + Sync {
     async fn get_prompt(&self, name: &str, arguments: Value) -> Result<GetPromptResult, Error>;
 }
 
-/// The MCP agent is the interface for MCP operations.
-pub struct McpAgent<S>
+/// The MCP client is the interface for MCP operations.
+pub struct McpClient<S>
 where
     S: Service<JsonRpcMessage, Response = JsonRpcMessage> + Clone + Send + Sync + 'static,
     S::Error: Into<Error>,
@@ -108,11 +108,11 @@ where
 {
     service: Mutex<S>,
     next_id: AtomicU64,
-    gateway_capabilities: Option<GatewayCapabilities>,
-    gateway_info: Option<Implementation>,
+    server_capabilities: Option<ServerCapabilities>,
+    server_info: Option<Implementation>,
 }
 
-impl<S> McpAgent<S>
+impl<S> McpClient<S>
 where
     S: Service<JsonRpcMessage, Response = JsonRpcMessage> + Clone + Send + Sync + 'static,
     S::Error: Into<Error>,
@@ -122,8 +122,8 @@ where
         Self {
             service: Mutex::new(service),
             next_id: AtomicU64::new(1),
-            gateway_capabilities: None,
-            gateway_info: None,
+            server_capabilities: None,
+            server_info: None,
         }
     }
 
@@ -146,9 +146,9 @@ where
         let response_msg = service
             .call(request)
             .await
-            .map_err(|e| Error::McpGatewayError {
-                gateway: self
-                    .gateway_info
+            .map_err(|e| Error::McpServerError {
+                server: self
+                    .server_info
                     .as_ref()
                     .map(|s| s.name.clone())
                     .unwrap_or("".to_string()),
@@ -212,9 +212,9 @@ where
         service
             .call(notification)
             .await
-            .map_err(|e| Error::McpGatewayError {
-                gateway: self
-                    .gateway_info
+            .map_err(|e| Error::McpServerError {
+                server: self
+                    .server_info
                     .as_ref()
                     .map(|s| s.name.clone())
                     .unwrap_or("".to_string()),
@@ -226,14 +226,14 @@ where
         Ok(())
     }
 
-    // Check if the agent has completed initialization
+    // Check if the client has completed initialization
     fn completed_initialization(&self) -> bool {
-        self.gateway_capabilities.is_some()
+        self.server_capabilities.is_some()
     }
 }
 
 #[async_trait::async_trait]
-impl<S> McpAgentTrait for McpAgent<S>
+impl<S> McpClientTrait for McpClient<S>
 where
     S: Service<JsonRpcMessage, Response = JsonRpcMessage> + Clone + Send + Sync + 'static,
     S::Error: Into<Error>,
@@ -241,12 +241,12 @@ where
 {
     async fn initialize(
         &mut self,
-        info: AgentInfo,
-        capabilities: AgentCapabilities,
+        info: ClientInfo,
+        capabilities: ClientCapabilities,
     ) -> Result<InitializeResult, Error> {
         let params = InitializeParams {
             protocol_version: "1.0.0".into(),
-            agent_info: info,
+            client_info: info,
             capabilities,
         };
         let result: InitializeResult = self
@@ -256,9 +256,9 @@ where
         self.send_notification("notifications/initialized", serde_json::json!({}))
             .await?;
 
-        self.gateway_capabilities = Some(result.capabilities.clone());
+        self.server_capabilities = Some(result.capabilities.clone());
 
-        self.gateway_info = Some(result.gateway_info.clone());
+        self.server_info = Some(result.server_info.clone());
 
         Ok(result)
     }
@@ -272,7 +272,7 @@ where
         }
         // If resources is not supported, return an empty list
         if self
-            .gateway_capabilities
+            .server_capabilities
             .as_ref()
             .unwrap()
             .resources
@@ -297,7 +297,7 @@ where
         }
         // If resources is not supported, return an error
         if self
-            .gateway_capabilities
+            .server_capabilities
             .as_ref()
             .unwrap()
             .resources
@@ -305,7 +305,7 @@ where
         {
             return Err(Error::RpcError {
                 code: METHOD_NOT_FOUND,
-                message: "Gateway does not support 'resources' capability".to_string(),
+                message: "Server does not support 'resources' capability".to_string(),
             });
         }
 
@@ -318,7 +318,7 @@ where
             return Err(Error::NotInitialized);
         }
         // If tools is not supported, return an empty list
-        if self.gateway_capabilities.as_ref().unwrap().tools.is_none() {
+        if self.server_capabilities.as_ref().unwrap().tools.is_none() {
             return Ok(ListToolsResult {
                 tools: vec![],
                 next_cursor: None,
@@ -337,17 +337,17 @@ where
             return Err(Error::NotInitialized);
         }
         // If tools is not supported, return an error
-        if self.gateway_capabilities.as_ref().unwrap().tools.is_none() {
+        if self.server_capabilities.as_ref().unwrap().tools.is_none() {
             return Err(Error::RpcError {
                 code: METHOD_NOT_FOUND,
-                message: "Gateway does not support 'tools' capability".to_string(),
+                message: "Server does not support 'tools' capability".to_string(),
             });
         }
 
         let params = serde_json::json!({ "name": name, "arguments": arguments });
 
         // TODO ERROR: check that if there is an error, we send back is_error: true with msg
-        // https://khulnasoft.io/docs/concepts/tools#error-handling-2
+        // https://khulnasoft.com/docs/concepts/tools#error-handling-2
         self.send_request("tools/call", params).await
     }
 
@@ -357,16 +357,10 @@ where
         }
 
         // If prompts is not supported, return an error
-        if self
-            .gateway_capabilities
-            .as_ref()
-            .unwrap()
-            .prompts
-            .is_none()
-        {
+        if self.server_capabilities.as_ref().unwrap().prompts.is_none() {
             return Err(Error::RpcError {
                 code: METHOD_NOT_FOUND,
-                message: "Gateway does not support 'prompts' capability".to_string(),
+                message: "Server does not support 'prompts' capability".to_string(),
             });
         }
 
@@ -383,16 +377,10 @@ where
         }
 
         // If prompts is not supported, return an error
-        if self
-            .gateway_capabilities
-            .as_ref()
-            .unwrap()
-            .prompts
-            .is_none()
-        {
+        if self.server_capabilities.as_ref().unwrap().prompts.is_none() {
             return Err(Error::RpcError {
                 code: METHOD_NOT_FOUND,
-                message: "Gateway does not support 'prompts' capability".to_string(),
+                message: "Server does not support 'prompts' capability".to_string(),
             });
         }
 

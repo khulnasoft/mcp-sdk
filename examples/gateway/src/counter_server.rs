@@ -1,6 +1,6 @@
 use anyhow::Result;
 use mcp_gateway::router::RouterService;
-use mcp_gateway::{ByteTransport, Gateway};
+use mcp_gateway::{ByteTransport, Server};
 use tokio::io::{stdin, stdout};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{self, EnvFilter};
@@ -22,15 +22,15 @@ async fn main() -> Result<()> {
         .with_line_number(true)
         .init();
 
-    tracing::info!("Starting MCP gateway");
+    tracing::info!("Starting MCP server");
 
     // Create an instance of our counter router
     let router = RouterService(common::counter::CounterRouter::new());
 
-    // Create and run the gateway
-    let gateway = Gateway::new(router);
+    // Create and run the server
+    let server = Server::new(router);
     let transport = ByteTransport::new(stdin(), stdout());
 
-    tracing::info!("Gateway initialized and ready to handle requests");
-    Ok(gateway.run(transport).await?)
+    tracing::info!("Server initialized and ready to handle requests");
+    Ok(server.run(transport).await?)
 }

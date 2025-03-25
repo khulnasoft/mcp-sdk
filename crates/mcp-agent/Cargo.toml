@@ -4,7 +4,7 @@ license.workspace = true
 version.workspace = true
 edition.workspace = true
 repository.workspace = true
-description = "Agent SDK for the Model Context Protocol"
+description = "Client SDK for the Model Context Protocol"
 
 [dependencies]
 mcp-kit = { workspace = true }

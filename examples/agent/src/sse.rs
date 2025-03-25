@@ -1,5 +1,5 @@
 use anyhow::Result;
-use mcp_agent::agent::{AgentCapabilities, AgentInfo, McpAgent, McpAgentTrait};
+use mcp_agent::client::{ClientCapabilities, ClientInfo, McpClient, McpClientTrait};
 use mcp_agent::transport::{SseTransport, Transport};
 use mcp_agent::McpService;
 use std::collections::HashMap;
@@ -13,7 +13,7 @@ async fn main() -> Result<()> {
         .with_env_filter(
             EnvFilter::from_default_env()
                 .add_directive("mcp_agent=debug".parse().unwrap())
-                .add_directive("eventsource_agent=info".parse().unwrap()),
+                .add_directive("eventsource_client=info".parse().unwrap()),
         )
         .init();
 
@@ -26,44 +26,44 @@ async fn main() -> Result<()> {
     // Create the service with timeout middleware
     let service = McpService::with_timeout(handle, Duration::from_secs(3));
 
-    // Create agent
-    let mut agent = McpAgent::new(service);
-    println!("Agent created\n");
+    // Create client
+    let mut client = McpClient::new(service);
+    println!("Client created\n");
 
     // Initialize
-    let gateway_info = agent
+    let server_info = client
         .initialize(
-            AgentInfo {
-                name: "test-agent".into(),
+            ClientInfo {
+                name: "test-client".into(),
                 version: "1.0.0".into(),
             },
-            AgentCapabilities::default(),
+            ClientCapabilities::default(),
         )
         .await?;
-    println!("Connected to gateway: {gateway_info:?}\n");
+    println!("Connected to server: {server_info:?}\n");
 
-    // Sleep for 100ms to allow the gateway to start - surprisingly this is required!
+    // Sleep for 100ms to allow the server to start - surprisingly this is required!
     tokio::time::sleep(Duration::from_millis(500)).await;
 
     // List tools
-    let tools = agent.list_tools(None).await?;
+    let tools = client.list_tools(None).await?;
     println!("Available tools: {tools:?}\n");
 
     // Call tool
-    let tool_result = agent
+    let tool_result = client
         .call_tool(
             "echo_tool",
-            serde_json::json!({ "message": "Agent with SSE transport - calling a tool" }),
+            serde_json::json!({ "message": "Client with SSE transport - calling a tool" }),
         )
         .await?;
     println!("Tool result: {tool_result:?}\n");
 
     // List resources
-    let resources = agent.list_resources(None).await?;
+    let resources = client.list_resources(None).await?;
     println!("Resources: {resources:?}\n");
 
     // Read resource
-    let resource = agent.read_resource("echo://fixedresource").await?;
+    let resource = client.read_resource("echo://fixedresource").await?;
     println!("Resource: {resource:?}\n");
 
     Ok(())

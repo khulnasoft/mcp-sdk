@@ -1,19 +1,19 @@
 use convert_case::{Case, Casing};
-use proc_codegen::TokenStream;
+use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use std::collections::HashMap;
 use syn::{
-    parse::Parse, parse::ParseStream, parse_codegen_input, punctuated::Punctuated, Expr, ExprLit,
+    parse::Parse, parse::ParseStream, parse_macro_input, punctuated::Punctuated, Expr, ExprLit,
     FnArg, ItemFn, Lit, Meta, Pat, PatType, Token,
 };
 
-struct CodegenArgs {
+struct MacroArgs {
     name: Option<String>,
     description: Option<String>,
     param_descriptions: HashMap<String, String>,
 }
 
-impl Parse for CodegenArgs {
+impl Parse for MacroArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut name = None;
         let mut description = None;
@@ -58,7 +58,7 @@ impl Parse for CodegenArgs {
             }
         }
 
-        Ok(CodegenArgs {
+        Ok(MacroArgs {
             name,
             description,
             param_descriptions,
@@ -66,10 +66,10 @@ impl Parse for CodegenArgs {
     }
 }
 
-#[proc_codegen_attribute]
+#[proc_macro_attribute]
 pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_codegen_input!(args as CodegenArgs);
-    let input_fn = parse_codegen_input!(input as ItemFn);
+    let args = parse_macro_input!(args as MacroArgs);
+    let input_fn = parse_macro_input!(input as ItemFn);
 
     // Extract function details
     let fn_name = &input_fn.sig.ident;
@@ -120,7 +120,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         struct #struct_name;
 
         #[async_trait::async_trait]
-        impl mcp_core::handler::ToolHandler for #struct_name {
+        impl mcp_kit::handler::ToolHandler for #struct_name {
             fn name(&self) -> &'static str {
                 #tool_name
             }
@@ -130,17 +130,17 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn schema(&self) -> serde_json::Value {
-                mcp_core::handler::generate_schema::<#params_struct_name>()
+                mcp_kit::handler::generate_schema::<#params_struct_name>()
                     .expect("Failed to generate schema")
             }
 
-            async fn call(&self, params: serde_json::Value) -> Result<serde_json::Value, mcp_core::handler::ToolError> {
+            async fn call(&self, params: serde_json::Value) -> Result<serde_json::Value, mcp_kit::handler::ToolError> {
                 let params: #params_struct_name = serde_json::from_value(params)
-                    .map_err(|e| mcp_core::handler::ToolError::InvalidParameters(e.to_string()))?;
+                    .map_err(|e| mcp_kit::handler::ToolError::InvalidParameters(e.to_string()))?;
 
                 // Extract parameters and call the function
                 let result = #fn_name(#(params.#param_names,)*).await
-                    .map_err(|e| mcp_core::handler::ToolError::ExecutionError(e.to_string()))?;
+                    .map_err(|e| mcp_kit::handler::ToolError::ExecutionError(e.to_string()))?;
 
                 Ok(serde_json::to_value(result).expect("should serialize"))
 

@@ -6,14 +6,15 @@ use std::{
 
 type PromptFuture = Pin<Box<dyn Future<Output = Result<String, PromptError>> + Send + 'static>>;
 
-use mcp_core::{
+use mcp_kit::{
     content::Content,
     handler::{PromptError, ResourceError, ToolError},
     prompt::{Prompt, PromptMessage, PromptMessageRole},
     protocol::{
-        CallToolResult, GatewayCapabilities, GetPromptResult, Implementation, InitializeResult,
-        JsonRpcRequest, JsonRpcResponse, ListPromptsResult, ListResourcesResult, ListToolsResult,
-        PromptsCapability, ReadResourceResult, ResourcesCapability, ToolsCapability,
+        CallToolResult, GetPromptResult, Implementation, InitializeResult, JsonRpcRequest,
+        JsonRpcResponse, ListPromptsResult, ListResourcesResult, ListToolsResult,
+        PromptsCapability, ReadResourceResult, ResourcesCapability, ServerCapabilities,
+        ToolsCapability,
     },
     ResourceContents,
 };
@@ -70,9 +71,9 @@ impl CapabilitiesBuilder {
     }
 
     /// Build the router with automatic capability inference
-    pub fn build(self) -> GatewayCapabilities {
+    pub fn build(self) -> ServerCapabilities {
         // Create capabilities based on what's configured
-        GatewayCapabilities {
+        ServerCapabilities {
             tools: self.tools,
             prompts: self.prompts,
             resources: self.resources,
@@ -84,14 +85,14 @@ pub trait Router: Send + Sync + 'static {
     fn name(&self) -> String;
     // in the protocol, instructions are optional but we make it required
     fn instructions(&self) -> String;
-    fn capabilities(&self) -> GatewayCapabilities;
-    fn list_tools(&self) -> Vec<mcp_core::tool::Tool>;
+    fn capabilities(&self) -> ServerCapabilities;
+    fn list_tools(&self) -> Vec<mcp_kit::tool::Tool>;
     fn call_tool(
         &self,
         tool_name: &str,
         arguments: Value,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<Content>, ToolError>> + Send + 'static>>;
-    fn list_resources(&self) -> Vec<mcp_core::resource::Resource>;
+    fn list_resources(&self) -> Vec<mcp_kit::resource::Resource>;
     fn read_resource(
         &self,
         uri: &str,
@@ -117,7 +118,7 @@ pub trait Router: Send + Sync + 'static {
             let result = InitializeResult {
                 protocol_version: "2024-11-05".to_string(),
                 capabilities: self.capabilities().clone(),
-                gateway_info: Implementation {
+                server_info: Implementation {
                     name: self.name(),
                     version: env!("CARGO_PKG_VERSION").to_string(),
                 },

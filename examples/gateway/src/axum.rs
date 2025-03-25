@@ -7,7 +7,7 @@ use axum::{
     Router,
 };
 use futures::{stream::Stream, StreamExt, TryStreamExt};
-use mcp_gateway::{ByteTransport, Gateway};
+use mcp_gateway::{ByteTransport, Server};
 use std::collections::HashMap;
 use tokio_util::codec::FramedRead;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -89,12 +89,12 @@ async fn post_event_handler(
         write_stream
             .write_all(&chunk)
             .await
-            .map_err(|_| StatusCode::INTERNAL_GATEWAY_ERROR)?;
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
     write_stream
         .write_u8(b'\n')
         .await
-        .map_err(|_| StatusCode::INTERNAL_GATEWAY_ERROR)?;
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(StatusCode::ACCEPTED)
 }
 
@@ -113,12 +113,12 @@ async fn sse_handler(State(app): State<App>) -> Sse<impl Stream<Item = Result<Ev
         let session = session.clone();
         tokio::spawn(async move {
             let router = RouterService(counter::CounterRouter::new());
-            let gateway = Gateway::new(router);
+            let server = Server::new(router);
             let bytes_transport = ByteTransport::new(c2s_read, s2c_write);
-            let _result = gateway
+            let _result = server
                 .run(bytes_transport)
                 .await
-                .inspect_err(|e| tracing::error!(?e, "gateway run error"));
+                .inspect_err(|e| tracing::error!(?e, "server run error"));
             app.txs.write().await.remove(&session);
         });
     }

@@ -18,21 +18,22 @@ tracing-appender = "0.2"
 futures = "0.3"
 
 [dev-dependencies]
-tokio-util = { version = "0.7", features = ["io", "codec"] }
-rand = "0.8"
+
+tokio-util = { version = "0.7", features = ["io", "codec"]}
+rand = { version = "0.8" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-axum = "0.8"
+axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 actix-web = "4"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-tokio = { version = "1", features = ["io-util", "rt", "time", "codegen"] }
-wasi = "0.11.0"
+tokio = { version = "1", features = ["io-util", "rt", "time", "macros"] }
+wasi = { version = "0.11.0+wasi-snapshot-preview1" }
 
 [[example]]
-name = "counter-gateway"
-path = "src/counter_gateway.rs"
+name = "counter-server"
+path = "src/counter_server.rs"
 
 [[example]]
 name = "axum"

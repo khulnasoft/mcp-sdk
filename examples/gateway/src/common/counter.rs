@@ -1,12 +1,12 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use mcp_core::{
+use mcp_gateway::router::CapabilitiesBuilder;
+use mcp_kit::{
     handler::{PromptError, ResourceError},
     prompt::{Prompt, PromptArgument},
-    protocol::GatewayCapabilities,
+    protocol::ServerCapabilities,
     Content, Resource, Tool, ToolError,
 };
-use mcp_gateway::router::CapabilitiesBuilder;
 use serde_json::Value;
 use tokio::sync::Mutex;
 
@@ -50,10 +50,10 @@ impl mcp_gateway::Router for CounterRouter {
     }
 
     fn instructions(&self) -> String {
-        "This gateway provides a counter tool that can increment and decrement values. The counter starts at 0 and can be modified using the 'increment' and 'decrement' tools. Use 'get_value' to check the current count.".to_string()
+        "This server provides a counter tool that can increment and decrement values. The counter starts at 0 and can be modified using the 'increment' and 'decrement' tools. Use 'get_value' to check the current count.".to_string()
     }
 
-    fn capabilities(&self) -> GatewayCapabilities {
+    fn capabilities(&self) -> ServerCapabilities {
         CapabilitiesBuilder::new()
             .with_tools(false)
             .with_resources(false, false)

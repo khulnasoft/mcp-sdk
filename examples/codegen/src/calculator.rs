@@ -1,5 +1,5 @@
 use mcp_codegen::tool;
-use mcp_core::handler::{ToolError, ToolHandler};
+use mcp_kit::handler::{ToolError, ToolHandler};
 
 #[tokio::main]
 async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {

@@ -1,8 +1,8 @@
 //! build: cargo build -p mcp-gateway-examples --example wasi_std_io --target wasm32-wasip1
 //!
-//! run: npx @khulnasoft/inspector wasmedge --dir logs:. run target/wasm32-wasip1/debug/examples/wasi_std_io.wasm
+//! run: npx @modelcontextprotocol/inspector wasmedge --dir logs:. run target/wasm32-wasip1/debug/examples/wasi_std_io.wasm
 //!
-use mcp_gateway::{router::RouterService, ByteTransport, Gateway};
+use mcp_gateway::{router::RouterService, ByteTransport, Server};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::EnvFilter;
 mod common;
@@ -23,20 +23,20 @@ async fn main() -> Result<()> {
         .with_line_number(true)
         .init();
 
-    tracing::info!("Starting MCP gateway");
+    tracing::info!("Starting MCP server");
 
     // Create an instance of our counter router
     let router = RouterService(CounterRouter::new());
 
-    // Create and run the gateway
-    let gateway = Gateway::new(router);
+    // Create and run the server
+    let server = Server::new(router);
     #[cfg(target_arch = "wasm32")]
     let transport = ByteTransport::new(async_io::WasiFd::std_in(), async_io::WasiFd::std_out());
     #[cfg(not(target_arch = "wasm32"))]
     let transport = ByteTransport::new(tokio::io::stdin(), tokio::io::stdout());
 
-    tracing::info!("Gateway initialized and ready to handle requests");
-    Ok(gateway.run(transport).await?)
+    tracing::info!("Server initialized and ready to handle requests");
+    Ok(server.run(transport).await?)
 }
 
 #[cfg(target_arch = "wasm32")]

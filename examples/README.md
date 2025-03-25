@@ -4,25 +4,25 @@ This directory contains examples demonstrating how to use the Model Context Prot
 
 ## Structure
 
-- `agents/`: Examples of MCP agents
-- `gateway/`: Examples of MCP gateway
-- `codegen/`: Examples of MCP codegen
+- `clients/`: Examples of MCP clients
+- `servers/`: Examples of MCP servers
+- `macros/`: Examples of MCP macros
 
-## Running Agent Examples
+## Running Client Examples
 
-The agent examples demonstrate different ways to connect to MCP gateway.
+The client examples demonstrate different ways to connect to MCP servers.
 
-Before running these examples, ensure you have `uv` installed. You can find the installation instructions [here](https://github.com/astral-sh/uv).
+Before running the examples, ensure you have `uv` installed. You can find the installation instructions [here](https://github.com/astral-sh/uv).
 
 ### Available Examples
 
 You can run the examples in two ways:
 
-#### Option 1: From the examples/agents directory
+#### Option 1: From the examples/clients directory
 
 ```bash
-cd examples/agents
-cargo run --example agents
+cd examples/clients
+cargo run --example clients
 cargo run --example sse
 cargo run --example stdio
 cargo run --example stdio_integration
@@ -31,40 +31,40 @@ cargo run --example stdio_integration
 #### Option 2: From the root directory
 
 ```bash
-cargo run -p mcp-agent-examples --example agents
+cargo run -p mcp-agent-examples --example clients
 cargo run -p mcp-agent-examples --example sse
 cargo run -p mcp-agent-examples --example stdio
 cargo run -p mcp-agent-examples --example stdio_integration
 ```
 
-## Running Gateway Examples
+## Running Server Examples
 
-The gateway examples demonstrate how to implement MCP gateway.
+The server examples demonstrate how to implement MCP servers.
 
 ### Available Examples
 
-You can run the gateway examples in two ways:
+You can run the server examples in two ways:
 
-#### Option 1: From the examples/gateway directory
+#### Option 1: From the examples/servers directory
 
 ```bash
-cd examples/gateway
-cargo run --example counter-gateway
+cd examples/servers
+cargo run --example counter-server
 ```
 
 #### Option 2: From the root directory
 
 ```bash
-cargo run -p mcp-gateway-examples --example counter-gateway
+cargo run -p mcp-gateway-examples --example counter-server
 ```
 
-## Running Codegen Examples
+## Running Macros Examples
 
-The codegen examples demonstrate how to use the MCP codegen to create tools.
+The macros examples demonstrate how to use the MCP macros to create tools.
 
 ### Available Examples
 
-You can run the codegen examples in two ways:
+You can run the macros examples in two ways:
 
 #### Option 1: From the examples/codegen directory
 
@@ -81,6 +81,6 @@ cargo run -p mcp-codegen-examples --example calculator
 
 ## Notes
 
-- Agent-based examples (e.g., the "calculator" example) require additional setup. Ensure that both the agent and gateway components are running.
-- The gateway examples use standard I/O for communication, so they can be connected to agent examples using stdio transport.
-- For SSE examples, you may need to run a separate SSE gateway or use a compatible MCP gateway implementation.
+- Some examples may require additional setup or running both client and server components.
+- The server examples use standard I/O for communication, so they can be connected to client examples using stdio transport.
+- For SSE examples, you may need to run a separate SSE server or use a compatible MCP server implementation.

@@ -1,4 +1,4 @@
-/// The protocol messages exchanged between agent and gateway
+/// The protocol messages exchanged between client and server
 use crate::{
     content::Content,
     prompt::{Prompt, PromptMessage},
@@ -151,8 +151,8 @@ pub struct ErrorData {
 #[serde(rename_all = "camelCase")]
 pub struct InitializeResult {
     pub protocol_version: String,
-    pub capabilities: GatewayCapabilities,
-    pub gateway_info: Implementation,
+    pub capabilities: ServerCapabilities,
+    pub server_info: Implementation,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub instructions: Option<String>,
 }
@@ -164,7 +164,7 @@ pub struct Implementation {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct GatewayCapabilities {
+pub struct ServerCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompts: Option<PromptsCapability>,
     #[serde(skip_serializing_if = "Option::is_none")]

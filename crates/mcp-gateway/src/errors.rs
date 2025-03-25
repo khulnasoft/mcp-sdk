@@ -21,7 +21,7 @@ pub enum TransportError {
 }
 
 #[derive(Error, Debug)]
-pub enum GatewayError {
+pub enum ServerError {
     #[error("Transport error: {0}")]
     Transport(#[from] TransportError),
 
@@ -56,9 +56,9 @@ pub enum RouterError {
     PromptNotFound(String),
 }
 
-impl From<RouterError> for mcp_core::protocol::ErrorData {
+impl From<RouterError> for mcp_kit::protocol::ErrorData {
     fn from(err: RouterError) -> Self {
-        use mcp_core::protocol::*;
+        use mcp_kit::protocol::*;
         match err {
             RouterError::MethodNotFound(msg) => ErrorData {
                 code: METHOD_NOT_FOUND,
@@ -94,10 +94,10 @@ impl From<RouterError> for mcp_core::protocol::ErrorData {
     }
 }
 
-impl From<mcp_core::handler::ResourceError> for RouterError {
-    fn from(err: mcp_core::handler::ResourceError) -> Self {
+impl From<mcp_kit::handler::ResourceError> for RouterError {
+    fn from(err: mcp_kit::handler::ResourceError) -> Self {
         match err {
-            mcp_core::handler::ResourceError::NotFound(msg) => RouterError::ResourceNotFound(msg),
+            mcp_kit::handler::ResourceError::NotFound(msg) => RouterError::ResourceNotFound(msg),
             _ => RouterError::Internal("Unknown resource error".to_string()),
         }
     }

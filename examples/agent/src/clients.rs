@@ -1,5 +1,5 @@
 use mcp_agent::{
-    agent::{AgentCapabilities, AgentInfo, McpAgent, McpAgentTrait},
+    client::{ClientCapabilities, ClientInfo, McpClient, McpClientTrait},
     transport::{SseTransport, StdioTransport, Transport},
     McpService,
 };
@@ -22,50 +22,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         StdioTransport::new("uvx", vec!["mcp-gateway-git".to_string()], HashMap::new());
     let handle1 = transport1.start().await?;
     let service1 = McpService::with_timeout(handle1, Duration::from_secs(30));
-    let agent1 = McpAgent::new(service1);
+    let client1 = McpClient::new(service1);
 
     let transport2 =
         StdioTransport::new("uvx", vec!["mcp-gateway-git".to_string()], HashMap::new());
     let handle2 = transport2.start().await?;
     let service2 = McpService::with_timeout(handle2, Duration::from_secs(30));
-    let agent2 = McpAgent::new(service2);
+    let client2 = McpClient::new(service2);
 
     let transport3 = SseTransport::new("http://localhost:8000/sse", HashMap::new());
     let handle3 = transport3.start().await?;
     let service3 = McpService::with_timeout(handle3, Duration::from_secs(10));
-    let agent3 = McpAgent::new(service3);
+    let client3 = McpClient::new(service3);
 
-    // Initialize both agents
-    let mut agents: Vec<Box<dyn McpAgentTrait>> =
-        vec![Box::new(agent1), Box::new(agent2), Box::new(agent3)];
+    // Initialize both clients
+    let mut clients: Vec<Box<dyn McpClientTrait>> =
+        vec![Box::new(client1), Box::new(client2), Box::new(client3)];
 
-    // Initialize all agents
-    for (i, agent) in agents.iter_mut().enumerate() {
-        let info = AgentInfo {
-            name: format!("example-agent-{}", i + 1),
+    // Initialize all clients
+    for (i, client) in clients.iter_mut().enumerate() {
+        let info = ClientInfo {
+            name: format!("example-client-{}", i + 1),
             version: "1.0.0".to_string(),
         };
-        let capabilities = AgentCapabilities::default();
+        let capabilities = ClientCapabilities::default();
 
-        println!("\nInitializing agent {}", i + 1);
-        let init_result = agent.initialize(info, capabilities).await?;
-        println!("Agent {} initialized: {:?}", i + 1, init_result);
+        println!("\nInitializing client {}", i + 1);
+        let init_result = client.initialize(info, capabilities).await?;
+        println!("Client {} initialized: {:?}", i + 1, init_result);
     }
 
-    // List tools for all agents
-    for (i, agent) in agents.iter_mut().enumerate() {
-        let tools = agent.list_tools(None).await?;
-        println!("\nAgent {} tools: {:?}", i + 1, tools);
+    // List tools for all clients
+    for (i, client) in clients.iter_mut().enumerate() {
+        let tools = client.list_tools(None).await?;
+        println!("\nClient {} tools: {:?}", i + 1, tools);
     }
 
     println!("\n\n----------------------------------\n\n");
 
-    // Wrap agents in Arc before spawning tasks
-    let agents = Arc::new(agents);
+    // Wrap clients in Arc before spawning tasks
+    let clients = Arc::new(clients);
     let mut handles = vec![];
 
     for i in 0..20 {
-        let agents = Arc::clone(&agents);
+        let clients = Arc::clone(&clients);
         let handle = tokio::spawn(async move {
             // let mut rng = rand::thread_rng();
             let mut rng = rand::rngs::StdRng::from_entropy();
@@ -74,8 +74,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Randomly select an operation
             match rng.gen_range(0..4) {
                 0 => {
-                    println!("\n{i}: Listing tools for agent 1 (stdio)");
-                    match agents[0].list_tools(None).await {
+                    println!("\n{i}: Listing tools for client 1 (stdio)");
+                    match clients[0].list_tools(None).await {
                         Ok(tools) => {
                             println!("  {i}: -> Got tools, first one: {:?}", tools.tools.first())
                         }
@@ -83,8 +83,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 1 => {
-                    println!("\n{i}: Calling tool for agent 2 (stdio)");
-                    match agents[1]
+                    println!("\n{i}: Calling tool for client 2 (stdio)");
+                    match clients[1]
                         .call_tool("git_status", serde_json::json!({ "repo_path": "." }))
                         .await
                     {
@@ -96,8 +96,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 2 => {
-                    println!("\n{i}: Listing tools for agent 3 (sse)");
-                    match agents[2].list_tools(None).await {
+                    println!("\n{i}: Listing tools for client 3 (sse)");
+                    match clients[2].list_tools(None).await {
                         Ok(tools) => {
                             println!("  {i}: -> Got tools, first one: {:?}", tools.tools.first())
                         }
@@ -105,11 +105,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 3 => {
-                    println!("\n{i}: Calling tool for agent 3 (sse)");
-                    match agents[2]
+                    println!("\n{i}: Calling tool for client 3 (sse)");
+                    match clients[2]
                             .call_tool(
                                 "echo_tool",
-                                serde_json::json!({ "message": "Agent with SSE transport - calling a tool" }),
+                                serde_json::json!({ "message": "Client with SSE transport - calling a tool" }),
                             )
                             .await
                         {
