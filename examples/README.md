@@ -81,6 +81,6 @@ cargo run -p mcp-codegen-examples --example calculator
 
 ## Notes
 
-- Some examples may require additional setup or running both agent and gateway components.
+- Agent-based examples (e.g., the "calculator" example) require additional setup. Ensure that both the agent and gateway components are running.
 - The gateway examples use standard I/O for communication, so they can be connected to agent examples using stdio transport.
 - For SSE examples, you may need to run a separate SSE gateway or use a compatible MCP gateway implementation.
