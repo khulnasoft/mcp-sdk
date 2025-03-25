@@ -1,0 +1,29 @@
+{
+  "name": "@ai-toolkit/server-slack",
+  "version": "0.6.2",
+  "description": "MCP server for interacting with Slack",
+  "license": "MIT",
+  "author": "KhulnaSoft, Ltd (https://khulnasoft.com)",
+  "homepage": "https://mcp.khulnasoft.com",
+  "bugs": "https://github.com/khulnasoft/mcp/tree/main/servers/issues",
+  "type": "module",
+  "bin": {
+    "mcp-server-slack": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/*.js",
+    "prepare": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@ai-toolkit/sdk": "1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "shx": "^0.3.4",
+    "typescript": "^5.6.2"
+  }
+}

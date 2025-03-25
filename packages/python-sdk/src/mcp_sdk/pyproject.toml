@@ -1,0 +1,5 @@
+[project]
+name = "mcp-sdk"
+version = "0.1.0"
+description = "Model Context Protocol SDK"
+dependencies = []

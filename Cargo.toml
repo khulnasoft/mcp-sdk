@@ -3,7 +3,8 @@ members = [
     "crates/*",
     "examples/agent",
     "examples/gateway",
-    "examples/codegen"
+    "examples/codegen",
+    "packages/*"
 ]
 resolver = "2"
 
