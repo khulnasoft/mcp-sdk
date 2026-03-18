@@ -1,0 +1,63 @@
+# MCP SDK — Default Rules Configuration
+# =======================================
+# Add your global platform rules below.
+# Rules are evaluated in descending priority order.
+# Loaded automatically when MCP_RULES_FILE is set.
+
+rules:
+  - id: require-authentication
+    name: Require Authentication
+    description: Block all unauthenticated requests on all agents
+    priority: 100
+    phase: pre
+    logic: AND
+    conditions:
+      - field: context.user_id
+        operator: not_exists
+        value: null
+    actions:
+      - action_type: deny
+        reason: "Authentication required. Please log in."
+    tags: [security, auth]
+
+  - id: audit-log
+    name: Full Audit Logging
+    description: Log every agent interaction for compliance and debugging
+    priority: 5
+    phase: both
+    logic: AND
+    conditions: []
+    actions:
+      - action_type: log
+        message: "Agent interaction"
+    tags: [audit, compliance]
+
+  - id: block-empty-messages
+    name: Block Empty Messages
+    description: Reject messages with empty content
+    priority: 80
+    phase: pre
+    logic: AND
+    conditions:
+      - field: message.content
+        operator: eq
+        value: ""
+    actions:
+      - action_type: deny
+        reason: "Message content cannot be empty"
+    tags: [validation]
+
+  - id: b2b-tenant-isolation
+    name: B2B Tenant Isolation
+    description: B2B agents only process messages from their own tenant
+    priority: 95
+    phase: pre
+    logic: AND
+    conditions:
+      - field: agent.agent_type
+        operator: eq
+        value: "b2b"
+    actions:
+      - action_type: log
+        message: "B2B tenant check"
+    tags: [b2b, security, tenant]

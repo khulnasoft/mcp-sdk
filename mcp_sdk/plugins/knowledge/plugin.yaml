@@ -1,0 +1,18 @@
+name: knowledge
+version: 1.0.0
+description: Self-discovery and context management plugin
+author: core-team
+entrypoint: plugin:Plugin
+isolation: local
+permissions:
+  - internal
+tools:
+  - name: summarize_context
+    description: Compress and summarize session context for token efficiency
+    tags: ["context", "compression", "agentic"]
+  - name: recommend_tools
+    description: Suggest relevant tools based on the current goal
+    tags: ["discovery", "orchestration", "agentic"]
+  - name: list_capabilities
+    description: List all active capabilities and plugins
+    tags: ["discovery", "governance"]

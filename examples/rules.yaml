@@ -1,0 +1,58 @@
+rules:
+  - id: require-auth
+    name: Require Authentication
+    description: All requests must include a user ID
+    priority: 100
+    phase: pre
+    logic: AND
+    conditions:
+      - field: context.user_id
+        operator: not_exists
+        value: null
+    actions:
+      - action_type: deny
+        reason: "You must be authenticated to use this service"
+    tags: [security, auth]
+
+  - id: block-banned-words
+    name: Block Banned Words
+    description: Filter messages containing banned content
+    priority: 90
+    phase: pre
+    logic: OR
+    conditions:
+      - field: message.content
+        operator: contains
+        value: "spam"
+      - field: message.content
+        operator: contains
+        value: "scam"
+    actions:
+      - action_type: deny
+        reason: "Message contains prohibited content"
+    tags: [moderation, content]
+
+  - id: admin-bypass
+    name: Admin Bypass
+    description: Admin users skip moderation rules
+    priority: 200
+    phase: pre
+    logic: AND
+    conditions:
+      - field: context.user_id
+        operator: eq
+        value: "admin"
+    actions:
+      - action_type: allow
+    tags: [security, admin]
+
+  - id: audit-all
+    name: Audit Log All
+    description: Record every interaction for compliance
+    priority: 5
+    phase: both
+    conditions: []
+    actions:
+      - action_type: log
+        message: "Interaction audited"
+    tags: [compliance, audit]

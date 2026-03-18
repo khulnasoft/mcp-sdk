@@ -1,0 +1,13 @@
+name: github
+version: 1.0.0
+description: GitHub MCP integration
+author: community
+entrypoint: plugin:Plugin
+isolation: subprocess
+permissions:
+  - network
+  - github_api
+tools:
+  - name: create_issue
+    description: Create a new GitHub issue
+    tags: ["git", "issue", "write"]

@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package mcp.plugin;
+
+// The PluginService is the gRPC interface that polyglot plugins will implement
+// and the MCP Server will call, OR the MCP Server will expose and plugins will connect to.
+// We'll define a basic bidirectional interface for executing tools.
+service PluginService {
+    // Initialize the plugin with its configuration
+    rpc Initialize (InitRequest) returns (InitResponse);
+    
+    // Call a specific tool provided by the plugin
+    rpc CallTool (ToolRequest) returns (ToolResponse);
+}
+
+message InitRequest {
+    string plugin_id = 1;
+    map<string, string> config = 2;
+}
+
+message InitResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+message ToolRequest {
+    string tool_name = 1;
+    string input_json = 2;
+}
+
+message ToolResponse {
+    bool success = 1;
+    string output_json = 2;
+    string error_message = 3;
+}

@@ -1,0 +1,16 @@
+name: metadata
+version: 0.1.0
+description: Semantic Metadata Registry for geospatial data sources.
+entrypoint: __init__:MetadataPlugin
+author: Antigravity
+license: MIT
+permissions:
+  - metadata.read
+  - metadata.write
+isolation: local
+depends: []
+tags:
+  - data
+  - registry
+  - metadata
+  - geospatial

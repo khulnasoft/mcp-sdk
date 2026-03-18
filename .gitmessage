@@ -1,0 +1,125 @@
+# 🚀 MCP SDK Commit Message Template
+# =====================================
+#
+# 📋 Format: <type>(<scope>): <subject>
+#           |
+#           └─> 📝 <body>
+#           |
+#           └─> 🔗 <footer>
+#
+# =====================================
+# 🎯 COMMIT TYPES (choose one)
+# =====================================
+#
+# ✨ feat:     🌟 New feature for the user
+# 🐛 fix:      🔧 Bug fix for the user
+# 📚 docs:     📖 Documentation changes
+# 🎨 style:    🎭 Formatting, missing semi-colons, etc (no code change)
+# ♻️ refactor: 🔄 Refactoring production code
+# 🧪 test:     ⚗️ Adding tests, refactoring test (no production code change)
+# 🔧 chore:    🛠️ Updating build tasks, package configs (no production code change)
+# ⚡ perf:     ⚡ Performance improvements
+# 💥 breaking: 💣 Breaking changes
+# 🔒 security: 🛡️ Security fixes
+# 🚀 build:    🏗️ Build system changes
+# 📦 deps:     📦 Dependency updates
+# 🔍 revert:   ↩️ Reverting previous changes
+# ✅ ci:       🔄 CI/CD related changes
+# 🔧 config:   ⚙️ Configuration changes
+#
+# =====================================
+# 🌍 SCOPE AREAS (choose relevant ones)
+# =====================================
+#
+# 🔧 core:       Core MCP functionality
+# 🤖 agents:     Agent management & lifecycle
+# 🔌 plugins:    Plugin system & architecture
+# 🔐 auth:       Authentication & authorization
+# 🗺️ geospatial: Geospatial features & mapping
+# 🍄 myceloom:   Myceloom protocol implementation
+# 📖 docs:       Documentation & guides
+# 🧪 tests:      Test infrastructure & suites
+# 🏗️ build:      Build & deployment systems
+# 🌐 api:        API endpoints & routes
+# 💾 data:       Data models & storage
+# 🔄 ci:         CI/CD pipelines & automation
+# 📊 monitoring: Observability & metrics
+# 🌍 i18n:       Internationalization
+# 🎯 cli:        Command-line interface
+# 📱 client:     Client libraries & SDKs
+# 🔄 sync:       Data synchronization
+# 🎭 ui:         User interface components
+# 🔍 search:     Search functionality
+# 📈 analytics:  Analytics & reporting
+# 🌐 network:    Network & communication
+# 🔧 tools:      Development tools & utilities
+# 🧮 math:       Mathematical operations
+# 🎨 themes:     UI themes & styling
+# 🔊 audio:      Audio processing
+# 🎬 video:      Video processing
+# 📷 images:     Image processing
+# 📝 forms:      Form handling & validation
+# 🗂️ files:      File management
+# 📧 email:      Email functionality
+# 💬 chat:       Chat & messaging
+# 📅 calendar:   Calendar & scheduling
+# 📍 location:   Location services
+# 🌡️ sensors:    Sensor data & IoT
+# 🎮 gaming:     Gaming features
+# 🎵 music:      Music functionality
+# 📰 news:       News & feeds
+# 🛒 ecommerce:  E-commerce features
+# 📦 inventory:  Inventory management
+# 💰 payments:   Payment processing
+# 📊 charts:     Charts & visualization
+# 🗃️ database:  Database operations
+# 🌐 webhooks:   Webhook handling
+# 📱 mobile:     Mobile-specific features
+# 🖥️ desktop:   Desktop-specific features
+#
+# =====================================
+# 💡 WRITING GUIDELINES
+# =====================================
+#
+# 📌 Subject:
+#   • Use imperative tense ("Add" not "Added" or "Adds")
+#   • Keep it under 50 characters when possible
+#   • Start with a verb that describes the change
+#   • Add relevant emoji to enhance visual appeal
+#   • Capitalize the first letter
+#
+# 📝 Body:
+#   • Explain WHAT and WHY, not HOW
+#   • Include context for future contributors
+#   • Reference technical decisions made
+#   • Mention performance impacts if relevant
+#   • Keep lines under 72 characters
+#
+# 🔗 Footer:
+#   • Closes: #issue-number
+#   • BREAKING CHANGE: description
+#   • Co-authored-by: Name <email>
+#   • References: related issues or PRs
+#
+# =====================================
+# 🌟 EXAMPLE TEMPLATES
+# =====================================
+#
+# ✨ feat(agents): 🤖 Add agent lifecycle management
+# 📝
+#   Implement comprehensive agent lifecycle including initialization,
+#   execution, monitoring, and graceful shutdown. This enables proper
+#   resource management and error handling across the MCP ecosystem.
+#
+#   Closes: #123
+#   Co-authored-by: Jane Doe <jane@example.com>
+#
+# 🐛 fix(auth): 🔐 Resolve JWT token validation issue
+# 📝
+#   Fix token expiration validation that was causing authentication
+#   failures for long-running sessions. Updated validation logic to
+#   properly handle edge cases with timezone differences.
+#
+#   Fixes: #456
+#
+# 🚀 Get started! Your commit tells the story of our collective progress.

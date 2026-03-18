@@ -1,0 +1,300 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish_pypi:
+        description: 'Publish to PyPI'
+        required: false
+        default: 'false'
+        type: boolean
+      publish_docker:
+        description: 'Publish Docker images'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Get version
+      id: get_version
+      run: |
+        if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          VERSION=${{ github.ref_name }}
+        else
+          VERSION=$(uv run python -c "import mcp_sdk; print(mcp_sdk.__version__)")
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Building version: $VERSION"
+        
+    - name: Install build dependencies
+      run: |
+        uv pip install build twine
+        
+    - name: Build package
+      run: uv build
+      
+    - name: Check package
+      run: twine check dist/*
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-${{ steps.get_version.outputs.version }}
+        path: dist/
+        retention-days: 30
+
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      github.event_name == 'release' || 
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_pypi == 'true')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mcp-sdk
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-${{ needs.build.outputs.version }}
+        path: dist/
+        
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+
+  publish-test-pypi:
+    name: Publish to Test PyPI
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_pypi == 'true') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-rc.'))
+    environment:
+      name: test-pypi
+      url: https://test.pypi.org/p/mcp-sdk
+    permissions:
+      id-token: write
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-${{ needs.build.outputs.version }}
+        path: dist/
+        
+    - name: Publish to Test PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        repository-url: https://test.pypi.org/legacy/
+
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to Docker Hub
+      if: |
+        github.event_name == 'release' || 
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_docker == 'true')
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: khulnasoft/mcp-sdk
+        tags: |
+          type=ref,event=tag
+          type=ref,event=branch
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: |
+          github.event_name == 'release' || 
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_docker == 'true')
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ steps.meta.outputs.tags }}
+        format: spdx-json
+        output-file: sbom.spdx.json
+        
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom-${{ needs.build.outputs.version }}
+        path: sbom.spdx.json
+
+  publish-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build, publish-pypi, build-docker]
+    if: |
+      github.event_name == 'release' || 
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    permissions:
+      contents: write
+      releases: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-${{ needs.build.outputs.version }}
+        path: dist/
+        
+    - name: Download SBOM
+      uses: actions/download-artifact@v4
+      with:
+        name: sbom-${{ needs.build.outputs.version }}
+        path: sbom/
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        # Generate changelog
+        if [ -n "$PREVIOUS_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD)
+        else
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)")
+        fi
+        
+        # Save to file
+        echo "$CHANGELOG" > CHANGELOG.md
+        
+        # Set output for GitHub
+        {
+          echo 'changelog<<EOF'
+          echo "$CHANGELOG"
+          echo EOF
+        } >> $GITHUB_OUTPUT
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.build.outputs.version }}
+        name: Release ${{ needs.build.outputs.version }}
+        body: |
+          ## Release ${{ needs.build.outputs.version }}
+          
+          ### 📦 Installation
+          
+          ```bash
+          pip install mcp-sdk==${{ needs.build.outputs.version }}
+          ```
+          
+          ### 🐳 Docker
+          
+          ```bash
+          docker pull khulnasoft/mcp-sdk:${{ needs.build.outputs.version }}
+          ```
+          
+          ### 📋 Changes
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ### 🔗 Links
+          
+          - [PyPI Package](https://pypi.org/p/mcp-sdk/${{ needs.build.outputs.version }})
+          - [Docker Hub](https://hub.docker.com/r/khulnasoft/mcp-sdk/tags)
+          - [Documentation](https://mcp-sdk.readthedocs.io/)
+        files: |
+          dist/*
+          sbom/*
+          CHANGELOG.md
+        draft: false
+        prerelease: ${{ contains(needs.build.outputs.version, 'rc') || contains(needs.build.outputs.version, 'alpha') || contains(needs.build.outputs.version, 'beta') }}
+        generate_release_notes: true
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [build, publish-pypi, publish-test-pypi, build-docker, publish-github-release]
+    if: always() && (needs.publish-pypi.result == 'success' || needs.publish-test-pypi.result == 'success')
+    steps:
+    - name: Notify Success
+      if: |
+        needs.publish-pypi.result == 'success' || 
+        needs.publish-test-pypi.result == 'success'
+      run: |
+        echo "✅ Release ${{ needs.build.outputs.version }} published successfully!"
+        echo "📦 PyPI: https://pypi.org/p/mcp-sdk/${{ needs.build.outputs.version }}"
+        echo "🐳 Docker: khulnasoft/mcp-sdk:${{ needs.build.outputs.version }}"
+        echo "📋 Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.build.outputs.version }}"
+        
+    - name: Notify Failure
+      if: |
+        needs.publish-pypi.result == 'failure' || 
+        needs.publish-test-pypi.result == 'failure'
+      run: |
+        echo "❌ Release ${{ needs.build.outputs.version }} failed!"
+        echo "Check the workflow logs for details."
+        exit 1

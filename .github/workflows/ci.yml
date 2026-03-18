@@ -1,0 +1,158 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  🔍-lint:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: 📦 Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        
+    - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 📥 Install dependencies
+      run: |
+        uv sync --dev
+        
+    - name: 🔍 Run ruff check
+      run: uv run ruff check mcp_sdk/ tests/
+      
+    - name: 🎨 Run ruff format check
+      run: uv run ruff format --check mcp_sdk/ tests/
+      
+    - name: 🏗️ Run mypy
+      run: uv run mypy mcp_sdk/ --ignore-missing-imports
+
+  🧪-test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: 📦 Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        
+    - name: 🐍 Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: 📥 Install dependencies
+      run: |
+        uv sync --dev
+        
+    - name: 🧪 Run tests
+      run: |
+        uv run pytest tests/ -v --cov=mcp_sdk --cov-report=xml --cov-report=term-missing
+        
+    - name: 📊 Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  🔒-security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: 📦 Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        
+    - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 📥 Install dependencies
+      run: |
+        uv sync --dev
+        uv add --dev bandit safety
+        
+    - name: 🔍 Run bandit security scan
+      run: uv run bandit -r mcp_sdk/ -f json -o bandit-report.json || true
+      
+    - name: 🔍 Run safety check
+      run: uv run safety check --json --output safety-report.json || true
+      
+    - name: 📤 Upload security reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  🐳-docker:
+    name: Docker Build & Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: 🐳 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: 🏗️ Build Docker image
+      run: |
+        docker build -t mcp-sdk:${{ github.sha }} .
+        docker tag mcp-sdk:${{ github.sha }} mcp-sdk:latest
+    
+    - name: 🧪 Test Docker image
+      run: |
+        docker run --rm mcp-sdk:${{ github.sha }} python --version
+        docker run --rm mcp-sdk:${{ github.sha }} python -c "import mcp_sdk; print('✅ MCP SDK imported successfully')"
+
+  📚-docs:
+    name: Documentation Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: 📦 Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        
+    - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 📥 Install dependencies
+      run: |
+        uv sync --dev
+        
+    - name: 📚 Build documentation
+      run: |
+        uv run mkdocs build --strict
+        
+    - name: 📤 Upload docs artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs
+        path: site/

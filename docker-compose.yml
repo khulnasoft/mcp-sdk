@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # Development environment
+  mcp-sdk-dev:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"  # Documentation server
+    volumes:
+      - .:/app
+      - /app/.pytest_cache
+      - /app/__pycache__
+    environment:
+      - ENVIRONMENT=development
+      - PYTHONPATH=/app
+    command: uv run mkdocs serve --host 0.0.0.0 --reload
+    profiles:
+      - dev
+
+  # Production environment
+  mcp-sdk-prod:
+    build:
+      context: .
+      target: production
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+    profiles:
+      - prod
+
+  # Test environment
+  mcp-sdk-test:
+    build:
+      context: .
+      target: test
+    volumes:
+      - .:/app
+      - /app/.pytest_cache
+      - /app/htmlcov
+    environment:
+      - ENVIRONMENT=test
+      - PYTHONPATH=/app
+    command: uv pytest tests/ -v --cov=mcp_sdk --cov-report=html --cov-report=term-missing
+    profiles:
+      - test
+
+  # Documentation builder
+  docs-builder:
+    build:
+      context: .
+      target: development
+    volumes:
+      - ./site:/app/site
+    command: mkdocs build --strict
+    profiles:
+      - docs
+
+  # Code quality checks
+  quality-check:
+    build:
+      context: .
+      target: development
+    volumes:
+      - .:/app
+    command: |
+      sh -c "
+        ruff check mcp_sdk/ tests/ &&
+        ruff format --check mcp_sdk/ tests/ &&
+        mypy mcp_sdk/ --ignore-missing-imports
+      "
+    profiles:
+      - quality
+
+networks:
+  default:
+    name: mcp-sdk-network

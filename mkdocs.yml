@@ -1,0 +1,70 @@
+site_name: MCP SDK Documentation
+site_description: All-in-One MCP Agent Platform SDK
+site_author: MCP SDK Contributors
+repo_url: https://github.com/khulnasoft/mcp-sdk
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - Core Concepts:
+    - MCP Protocol: concepts/protocol.md
+    - Agents: concepts/agents.md
+    - Rules Engine: concepts/rules.md
+    - Channels: concepts/channels.md
+    - Memory: concepts/memory.md
+    - Orchestration: concepts/orchestration.md
+  - Guides:
+    - A2A Agents: guides/a2a.md
+    - A2B Integration: guides/a2b.md
+    - B2B Platform: guides/b2b.md
+    - B2C Applications: guides/b2c.md
+    - Writing Rules: guides/rules.md
+  - API Reference:
+    - mcp_sdk.core: api/core.md
+    - mcp_sdk.agents: api/agents.md
+    - mcp_sdk.rules: api/rules.md
+    - mcp_sdk.channels: api/channels.md
+    - mcp_sdk.memory: api/memory.md
+    - mcp_sdk.orchestrator: api/orchestrator.md
+    - mcp_sdk.auth: api/auth.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.tabbed:
+      alternate_style: true
