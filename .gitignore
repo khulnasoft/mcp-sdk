@@ -80,3 +80,6 @@ mcp.db
 
 # Rust components
 mcp-core-rust/
+
+# macOS
+.DS_Store
